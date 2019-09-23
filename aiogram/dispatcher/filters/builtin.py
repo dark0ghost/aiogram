@@ -633,11 +633,19 @@ class IsReplyFilter(BoundFilter):
     """
     key = 'is_reply'
 
-    def __init__(self, is_reply):
-        self.is_reply = is_reply
+    def __init__(self, is_reply: bool) -> None:
+         """
+         is_replay key check
+         """
+        self.is_reply: bool = is_reply
 
     async def check(self, msg: Message):
         if msg.reply_to_message and self.is_reply:
-            return {'reply': msg.reply_to_message}
+            return {
+                    'reply': msg.reply_to_message
+                   }
         elif not msg.reply_to_message and not self.is_reply:
             return True
+
+        return None
+
