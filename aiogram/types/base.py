@@ -30,7 +30,7 @@ class MetaTelegramObject(type):
     """
     _objects = {}
 
-    def __new__(mcs, name, bases, namespace, **kwargs):
+    def __new__(mcs, name, bases, namespace, **kwargs) -> object:
         cls = super(MetaTelegramObject, mcs).__new__(mcs, name, bases, namespace)
 
         props = {}
@@ -71,7 +71,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
     Abstract class for telegram objects
     """
 
-    def __init__(self, conf=None, **kwargs):
+    def __init__(self, conf: typing.Dict[str, typing.Any]=None, **kwargs) -> None:
         """
         Deserialize object
 
@@ -117,7 +117,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return getattr(self, ALIASES_ATTR_NAME, {})
 
     @property
-    def values(self):
+    def values(self) -> typing.Any:
         """
         Get values
 
@@ -170,7 +170,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
             result[self.props_aliases.get(name, name)] = value
         return result
 
-    def clean(self):
+    def clean(self) -> None:
         """
         Remove empty values
         """
@@ -188,7 +188,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return json.dumps(self.to_python())
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, **kwargs) -> None:
         raise NotImplemented
 
     def __str__(self) -> str:
@@ -210,7 +210,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
             return self.props[item].get_value(self)
         raise KeyError(item)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         """
         Item setter (by key)
 
@@ -222,7 +222,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
             return self.props[key].set_value(self, value, self.conf.get('parent', None))
         raise KeyError(key)
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         """
         Check key contains in that object
 
@@ -250,7 +250,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         for key, _ in self:
             yield key
 
-    def iter_values(self):
+    def iter_values(self) -> typing.Any:
         """
         Iterate over values
 
@@ -281,5 +281,5 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
 
         return result
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and hash(other) == hash(self)
