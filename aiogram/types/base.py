@@ -22,6 +22,7 @@ String = TypeVar('String', bound=str)
 Integer = TypeVar('Integer', bound=int)
 Float = TypeVar('Float', bound=float)
 Boolean = TypeVar('Boolean', bound=bool)
+T = TypeVar('T')
 
 
 class MetaTelegramObject(type):
@@ -30,7 +31,7 @@ class MetaTelegramObject(type):
     """
     _objects = {}
 
-    def __new__(mcs, name, bases, namespace, **kwargs) -> object:
+    def __new__(mcs, name: str, bases, namespace, **kwargs) -> T:
         cls = super(MetaTelegramObject, mcs).__new__(mcs, name, bases, namespace)
 
         props = {}
@@ -117,7 +118,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return getattr(self, ALIASES_ATTR_NAME, {})
 
     @property
-    def values(self) -> typing.Any:
+    def values(self) -> T:
         """
         Get values
 
@@ -152,7 +153,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
                                "'Bot.set_current(bot_instance)'")
         return bot
 
-    def to_python(self) -> typing.Dict:
+    def to_python(self) -> typing.Dict[str, typing.Any]:
         """
         Get object as JSON serializable
 
@@ -232,7 +233,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         self.clean()
         return item in self.values
 
-    def __iter__(self):
+    def __iter__(self) -> T:
         """
         Iterate over items
 
@@ -259,7 +260,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         for _, value in self:
             yield value
 
-    def __hash__(self):
+    def __hash__(self) -> str:
         def _hash(obj):
             buf = 0
             if isinstance(obj, list):
