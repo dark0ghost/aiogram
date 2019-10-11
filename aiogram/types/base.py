@@ -118,7 +118,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return getattr(self, ALIASES_ATTR_NAME, {})
 
     @property
-    def values(self) -> T:
+    def values(self) -> typing.Tuple[str]:
         """
         Get values
 
