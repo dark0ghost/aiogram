@@ -33,7 +33,7 @@ class MetaTelegramObject(type):
     """
     _objects = {}
 
-    def __new__(mcs, name: str, bases, namespace, **kwargs) -> T:
+    def __new__(mcs: typing.Type[T], name: str, bases: typing.Tuple[typing.Type], namespace: typing.Dict[str, typing.Any], **kwargs: typing.Any) -> T:
         cls = super(MetaTelegramObject, mcs).__new__(mcs, name, bases, namespace)
 
         props = {}
@@ -131,11 +131,11 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return getattr(self, VALUES_ATTR_NAME)
 
     @property
-    def telegram_types(self) -> T:
+    def telegram_types(self) -> typing.List[TelegramObject]:
         return type(self).telegram_types
 
     @classmethod
-    def to_object(cls, data) -> T:
+    def to_object(cls: typing.Type[T], data: typing.Dict[str, typing.Any]) -> T:
         """
         Deserialize object
 
@@ -145,7 +145,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return cls(**data)
 
     @property
-    def bot(self) -> T:
+    def bot(self) -> Bot:
         from ..bot.bot import Bot
 
         bot = Bot.get_current()
@@ -213,7 +213,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
             return self.props[item].get_value(self)
         raise KeyError(item)
 
-    def __setitem__(self, key, value) -> None:
+     def __setitem__(self, key: str, value: typing.Any) -> None:
         """
         Item setter (by key)
 
@@ -235,7 +235,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         self.clean()
         return item in self.values
 
-    def __iter__(self) -> T:
+    def __iter__(self) -> typing.Iterator[str]:
         """
         Iterate over items
 
@@ -253,7 +253,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         for key, _ in self:
             yield key
 
-    def iter_values(self) -> typing.Any:
+    def iter_values(self) -> typing.Generator[typing.Any, None, None]:
         """
         Iterate over values
 
@@ -284,5 +284,5 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
 
         return result
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: TelegramObject) -> bool:
         return isinstance(other, self.__class__) and hash(other) == hash(self)
