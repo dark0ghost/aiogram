@@ -9,6 +9,8 @@ from babel.support import LazyProxy
 from .fields import BaseField
 from ..utils import json
 from ..utils.mixins import ContextInstanceMixin
+if typing.TYPE_CHECKING:
+    from ..bot.bot import Bot
 
 __all__ = ('MetaTelegramObject', 'TelegramObject', 'InputFile', 'String', 'Integer', 'Float', 'Boolean')
 
@@ -72,7 +74,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
     Abstract class for telegram objects
     """
 
-    def __init__(self, conf: typing.Dict[str, typing.Any]=None, **kwargs) -> None:
+    def __init__(self, conf: typing.Dict[str, typing.Any]=None, **kwargs: typing.Any) -> None:
         """
         Deserialize object
 
@@ -260,9 +262,9 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         for _, value in self:
             yield value
 
-    def __hash__(self) -> str:
-        def _hash(obj):
-            buf = 0
+    def __hash__(self) -> int:
+        def _hash(obj)-> int:
+            buf: int = 0
             if isinstance(obj, list):
                 for item in obj:
                     buf += _hash(item)
