@@ -129,11 +129,11 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return getattr(self, VALUES_ATTR_NAME)
 
     @property
-    def telegram_types(self):
+    def telegram_types(self) -> T:
         return type(self).telegram_types
 
     @classmethod
-    def to_object(cls, data):
+    def to_object(cls, data) -> T:
         """
         Deserialize object
 
@@ -143,7 +143,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return cls(**data)
 
     @property
-    def bot(self):
+    def bot(self) -> T:
         from ..bot.bot import Bot
 
         bot = Bot.get_current()
@@ -200,7 +200,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         """
         return self.as_json()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: typing.Union[str,int]) -> T:
         """
         Item getter (by key)
 
@@ -223,7 +223,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
             return self.props[key].set_value(self, value, self.conf.get('parent', None))
         raise KeyError(key)
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item: typing.Dict[str,typing.Any]) -> bool:
         """
         Check key contains in that object
 
@@ -242,7 +242,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         for item in self.to_python().items():
             yield item
 
-    def iter_keys(self):
+    def iter_keys(self) -> T:
         """
         Iterate over keys
 
