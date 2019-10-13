@@ -213,7 +213,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
             return self.props[item].get_value(self)
         raise KeyError(item)
 
-     def __setitem__(self, key: str, value: typing.Any) -> None:
+    def __setitem__(self, key: str, value: typing.Any) -> None:
         """
         Item setter (by key)
 
