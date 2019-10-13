@@ -244,7 +244,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         for item in self.to_python().items():
             yield item
 
-    def iter_keys(self) -> T:
+    def iter_keys(self) -> typing.Generator[typing.Any, None, None]:
         """
         Iterate over keys
 
