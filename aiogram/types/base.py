@@ -202,7 +202,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         """
         return self.as_json()
 
-    def __getitem__(self, item: typing.Union[str,int]) -> T:
+    def __getitem__(self, item: typing.Union[str, int]) -> typing.Any:
         """
         Item getter (by key)
 
