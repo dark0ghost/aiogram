@@ -191,7 +191,7 @@ class TelegramObject(ContextInstanceMixin, metaclass=MetaTelegramObject):
         return json.dumps(self.to_python())
 
     @classmethod
-    def create(cls, *args, **kwargs) -> None:
+    def create(cls: Type[T], *args: typing.Any, **kwargs: typing.Any) -> T:
         raise NotImplemented
 
     def __str__(self) -> str:
