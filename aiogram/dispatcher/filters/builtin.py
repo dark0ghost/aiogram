@@ -1,18 +1,24 @@
 import inspect
 import re
+import typing
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Optional, Union
 
+from babel.support import LazyProxy
+
 from aiogram import types
 from aiogram.dispatcher.filters.filters import BoundFilter, Filter
-from aiogram.types import CallbackQuery, Message, InlineQuery
-from aiogram.utils.deprecated import warn_deprecated
+from aiogram.types import CallbackQuery, Message, InlineQuery, Poll, ChatType
 
 
 class Command(Filter):
     """
-    You can handle commands by using this filter
+    You can handle commands by using this filter.
+
+    If filter is successful processed the :obj:`Command.CommandObj` will be passed to the handler arguments.
+
+    By default this filter is registered for messages and edited messages handlers.
     """
 
     def __init__(self, commands: Union[Iterable, str],
@@ -20,12 +26,22 @@ class Command(Filter):
                  ignore_case: bool = True,
                  ignore_mention: bool = False):
         """
-        Filter can be initialized from filters factory or by simply creating instance of this class
+        Filter can be initialized from filters factory or by simply creating instance of this class.
 
-        :param commands: command or list of commands
-        :param prefixes:
-        :param ignore_case:
-        :param ignore_mention:
+        Examples:
+
+        .. code-block:: python
+
+            @dp.message_handler(commands=['myCommand'])
+            @dp.message_handler(Command(['myCommand']))
+            @dp.message_handler(commands=['myCommand'], commands_prefix='!/')
+
+        :param commands: Command or list of commands always without leading slashes (prefix)
+        :param prefixes: Allowed commands prefix. By default is slash.
+            If you change the default behavior pass the list of prefixes to this argument.
+        :param ignore_case: Ignore case of the command
+        :param ignore_mention: Ignore mention in command
+            (By default this filter pass only the commands addressed to current bot)
         """
         if isinstance(commands, str):
             commands = (commands,)
@@ -40,15 +56,21 @@ class Command(Filter):
         """
         Validator for filters factory
 
+        From filters factory this filter can be registered with arguments:
+
+         - ``command``
+         - ``commands_prefix`` (will be passed as ``prefixes``)
+         - ``commands_ignore_mention`` (will be passed as ``ignore_mention``
+
         :param full_config:
         :return: config or empty dict
         """
         config = {}
         if 'commands' in full_config:
             config['commands'] = full_config.pop('commands')
-        if 'commands_prefix' in full_config:
+        if config and 'commands_prefix' in full_config:
             config['prefixes'] = full_config.pop('commands_prefix')
-        if 'commands_ignore_mention' in full_config:
+        if config and 'commands_ignore_mention' in full_config:
             config['ignore_mention'] = full_config.pop('commands_ignore_mention')
         return config
 
@@ -57,31 +79,54 @@ class Command(Filter):
 
     @staticmethod
     async def check_command(message: types.Message, commands, prefixes, ignore_case=True, ignore_mention=False):
+        if not message.text:  # Prevent to use with non-text content types
+            return False
+
         full_command = message.text.split()[0]
         prefix, (command, _, mention) = full_command[0], full_command[1:].partition('@')
 
         if not ignore_mention and mention and (await message.bot.me).username.lower() != mention.lower():
             return False
-        elif prefix not in prefixes:
+        if prefix not in prefixes:
             return False
-        elif (command.lower() if ignore_case else command) not in commands:
+        if (command.lower() if ignore_case else command) not in commands:
             return False
 
         return {'command': Command.CommandObj(command=command, prefix=prefix, mention=mention)}
 
     @dataclass
     class CommandObj:
+        """
+        Instance of this object is always has command and it prefix.
+
+        Can be passed as keyword argument ``command`` to the handler
+        """
+
+        """Command prefix"""
         prefix: str = '/'
+        """Command without prefix and mention"""
         command: str = ''
+        """Mention (if available)"""
         mention: str = None
+        """Command argument"""
         args: str = field(repr=False, default=None)
 
         @property
         def mentioned(self) -> bool:
+            """
+            This command has mention?
+
+            :return:
+            """
             return bool(self.mention)
 
         @property
         def text(self) -> str:
+            """
+            Generate original text from object
+
+            :return:
+            """
             line = self.prefix + self.command
             if self.mentioned:
                 line += '@' + self.mention
@@ -91,23 +136,71 @@ class Command(Filter):
 
 
 class CommandStart(Command):
-    def __init__(self):
-        super(CommandStart, self).__init__(['start'])
+    """
+    This filter based on :obj:`Command` filter but can handle only ``/start`` command.
+    """
+
+    def __init__(self, deep_link: typing.Optional[typing.Union[str, re.Pattern]] = None):
+        """
+        Also this filter can handle `deep-linking <https://core.telegram.org/bots#deep-linking>`_ arguments.
+
+        Example:
+
+        .. code-block:: python
+
+            @dp.message_handler(CommandStart(re.compile(r'ref-([\\d]+)')))
+
+        :param deep_link: string or compiled regular expression (by ``re.compile(...)``).
+        """
+        super().__init__(['start'])
+        self.deep_link = deep_link
+
+    async def check(self, message: types.Message):
+        """
+        If deep-linking is passed to the filter result of the matching will be passed as ``deep_link`` to the handler
+
+        :param message:
+        :return:
+        """
+        check = await super().check(message)
+
+        if check and self.deep_link is not None:
+            if not isinstance(self.deep_link, re.Pattern):
+                return message.get_args() == self.deep_link
+
+            match = self.deep_link.match(message.get_args())
+            if match:
+                return {'deep_link': match}
+            return False
+
+        return check
 
 
 class CommandHelp(Command):
+    """
+    This filter based on :obj:`Command` filter but can handle only ``/help`` command.
+    """
+
     def __init__(self):
-        super(CommandHelp, self).__init__(['help'])
+        super().__init__(['help'])
 
 
 class CommandSettings(Command):
+    """
+    This filter based on :obj:`Command` filter but can handle only ``/settings`` command.
+    """
+
     def __init__(self):
-        super(CommandSettings, self).__init__(['settings'])
+        super().__init__(['settings'])
 
 
 class CommandPrivacy(Command):
+    """
+    This filter based on :obj:`Command` filter but can handle only ``/privacy`` command.
+    """
+
     def __init__(self):
-        super(CommandPrivacy, self).__init__(['privacy'])
+        super().__init__(['privacy'])
 
 
 class Text(Filter):
@@ -115,33 +208,44 @@ class Text(Filter):
     Simple text filter
     """
 
+    _default_params = (
+        ('text', 'equals'),
+        ('text_contains', 'contains'),
+        ('text_startswith', 'startswith'),
+        ('text_endswith', 'endswith'),
+    )
+
     def __init__(self,
-                 equals: Optional[str] = None,
-                 contains: Optional[str] = None,
-                 startswith: Optional[str] = None,
-                 endswith: Optional[str] = None,
+                 equals: Optional[Union[str, LazyProxy, Iterable[Union[str, LazyProxy]]]] = None,
+                 contains: Optional[Union[str, LazyProxy, Iterable[Union[str, LazyProxy]]]] = None,
+                 startswith: Optional[Union[str, LazyProxy, Iterable[Union[str, LazyProxy]]]] = None,
+                 endswith: Optional[Union[str, LazyProxy, Iterable[Union[str, LazyProxy]]]] = None,
                  ignore_case=False):
         """
         Check text for one of pattern. Only one mode can be used in one filter.
+        In every pattern, a single string is treated as a list with 1 element.
 
-        :param equals:
-        :param contains:
-        :param startswith:
-        :param endswith:
+        :param equals: True if object's text in the list
+        :param contains: True if object's text contains all strings from the list
+        :param startswith: True if object's text starts with any of strings from the list
+        :param endswith: True if object's text ends with any of strings from the list
         :param ignore_case: case insensitive
         """
         # Only one mode can be used. check it.
-        check = sum(map(bool, (equals, contains, startswith, endswith)))
+        check = sum(map(lambda s: s is not None, (equals, contains, startswith, endswith)))
         if check > 1:
             args = "' and '".join([arg[0] for arg in [('equals', equals),
                                                       ('contains', contains),
                                                       ('startswith', startswith),
                                                       ('endswith', endswith)
-                                                      ] if arg[1]])
+                                                      ] if arg[1] is not None])
             raise ValueError(f"Arguments '{args}' cannot be used together.")
         elif check == 0:
             raise ValueError(f"No one mode is specified!")
 
+        equals, contains, endswith, startswith = map(lambda e: [e] if isinstance(e, str) or isinstance(e, LazyProxy)
+                                                     else e,
+                                                     (equals, contains, endswith, startswith))
         self.equals = equals
         self.contains = contains
         self.endswith = endswith
@@ -150,36 +254,46 @@ class Text(Filter):
 
     @classmethod
     def validate(cls, full_config: Dict[str, Any]):
-        if 'text' in full_config:
-            return {'equals': full_config.pop('text')}
-        elif 'text_contains' in full_config:
-            return {'contains': full_config.pop('text_contains')}
-        elif 'text_startswith' in full_config:
-            return {'startswith': full_config.pop('text_startswith')}
-        elif 'text_endswith' in full_config:
-            return {'endswith': full_config.pop('text_endswith')}
+        for param, key in cls._default_params:
+            if param in full_config:
+                return {key: full_config.pop(param)}
 
-    async def check(self, obj: Union[Message, CallbackQuery, InlineQuery]):
+    async def check(self, obj: Union[Message, CallbackQuery, InlineQuery, Poll]):
         if isinstance(obj, Message):
             text = obj.text or obj.caption or ''
+            if not text and obj.poll:
+                text = obj.poll.question
         elif isinstance(obj, CallbackQuery):
             text = obj.data
         elif isinstance(obj, InlineQuery):
             text = obj.query
+        elif isinstance(obj, Poll):
+            text = obj.question
         else:
             return False
 
         if self.ignore_case:
             text = text.lower()
+            _pre_process_func = lambda s: str(s).lower()
+        else:
+            _pre_process_func = str
 
-        if self.equals:
-            return text == self.equals
-        elif self.contains:
-            return self.contains in text
-        elif self.startswith:
-            return text.startswith(self.startswith)
-        elif self.endswith:
-            return text.endswith(self.endswith)
+        # now check
+        if self.equals is not None:
+            equals = list(map(_pre_process_func, self.equals))
+            return text in equals
+
+        if self.contains is not None:
+            contains = list(map(_pre_process_func, self.contains))
+            return all(map(text.__contains__, contains))
+
+        if self.startswith is not None:
+            startswith = list(map(_pre_process_func, self.startswith))
+            return any(map(text.startswith, startswith))
+
+        if self.endswith is not None:
+            endswith = list(map(_pre_process_func, self.endswith))
+            return any(map(text.endswith, endswith))
 
         return False
 
@@ -265,13 +379,21 @@ class Regexp(Filter):
         if 'regexp' in full_config:
             return {'regexp': full_config.pop('regexp')}
 
-    async def check(self, obj: Union[Message, CallbackQuery]):
+    async def check(self, obj: Union[Message, CallbackQuery, InlineQuery, Poll]):
         if isinstance(obj, Message):
-            match = self.regexp.search(obj.text or obj.caption or '')
+            content = obj.text or obj.caption or ''
+            if not content and obj.poll:
+                content = obj.poll.question
         elif isinstance(obj, CallbackQuery) and obj.data:
-            match = self.regexp.search(obj.data)
+            content = obj.data
+        elif isinstance(obj, InlineQuery):
+            content = obj.query
+        elif isinstance(obj, Poll):
+            content = obj.question
         else:
             return False
+
+        match = self.regexp.search(content)
 
         if match:
             return {'regexp': match}
@@ -372,22 +494,6 @@ class StateFilter(BoundFilter):
         return False
 
 
-class FuncFilter(BoundFilter):
-    key = 'func'
-
-    def __init__(self, dispatcher, func):
-        self.dispatcher = dispatcher
-        self.func = func
-
-        warn_deprecated('"func" filter will be removed in 2.1 version.\n'
-                        'Read mode: https://aiogram.readthedocs.io/en/dev-2.x/migration_1_to_2.html#custom-filters',
-                        stacklevel=8)
-
-    async def check(self, obj) -> bool:
-        from .filters import check_filter
-        return await check_filter(self.dispatcher, self.func, (obj,))
-
-
 class ExceptionsFilter(BoundFilter):
     """
     Filter for exceptions
@@ -405,3 +511,136 @@ class ExceptionsFilter(BoundFilter):
             return True
         except:
             return False
+
+
+class IDFilter(Filter):
+
+    def __init__(self,
+                 user_id: Optional[Union[Iterable[Union[int, str]], str, int]] = None,
+                 chat_id: Optional[Union[Iterable[Union[int, str]], str, int]] = None,
+                 ):
+        """
+        :param user_id:
+        :param chat_id:
+        """
+        if user_id is None and chat_id is None:
+            raise ValueError("Both user_id and chat_id can't be None")
+
+        self.user_id = None
+        self.chat_id = None
+        if user_id:
+            if isinstance(user_id, Iterable):
+                self.user_id = list(map(int, user_id))
+            else:
+                self.user_id = [int(user_id), ]
+        if chat_id:
+            if isinstance(chat_id, Iterable):
+                self.chat_id = list(map(int, chat_id))
+            else:
+                self.chat_id = [int(chat_id), ]
+
+    @classmethod
+    def validate(cls, full_config: typing.Dict[str, typing.Any]) -> typing.Optional[typing.Dict[str, typing.Any]]:
+        result = {}
+        if 'user_id' in full_config:
+            result['user_id'] = full_config.pop('user_id')
+
+        if 'chat_id' in full_config:
+            result['chat_id'] = full_config.pop('chat_id')
+
+        return result
+
+    async def check(self, obj: Union[Message, CallbackQuery, InlineQuery]):
+        if isinstance(obj, Message):
+            user_id = obj.from_user.id
+            chat_id = obj.chat.id
+        elif isinstance(obj, CallbackQuery):
+            user_id = obj.from_user.id
+            chat_id = None
+            if obj.message is not None:
+                # if the button was sent with message
+                chat_id = obj.message.chat.id
+        elif isinstance(obj, InlineQuery):
+            user_id = obj.from_user.id
+            chat_id = None
+        else:
+            return False
+
+        if self.user_id and self.chat_id:
+            return user_id in self.user_id and chat_id in self.chat_id
+        if self.user_id:
+            return user_id in self.user_id
+        if self.chat_id:
+            return chat_id in self.chat_id
+
+        return False
+
+
+class AdminFilter(Filter):
+    """
+    Checks if user is admin in a chat.
+    If is_chat_admin is not set, the filter will check in the current chat (correct only for messages).
+    is_chat_admin is required for InlineQuery.
+    """
+
+    def __init__(self, is_chat_admin: Optional[Union[Iterable[Union[int, str]], str, int, bool]] = None):
+        self._check_current = False
+        self._chat_ids = None
+
+        if is_chat_admin is False:
+            raise ValueError("is_chat_admin cannot be False")
+
+        if is_chat_admin:
+            if isinstance(is_chat_admin, bool):
+                self._check_current = is_chat_admin
+            if isinstance(is_chat_admin, Iterable):
+                self._chat_ids = list(is_chat_admin)
+            else:
+                self._chat_ids = [is_chat_admin]
+        else:
+            self._check_current = True
+
+    @classmethod
+    def validate(cls, full_config: typing.Dict[str, typing.Any]) -> typing.Optional[typing.Dict[str, typing.Any]]:
+        result = {}
+
+        if "is_chat_admin" in full_config:
+            result["is_chat_admin"] = full_config.pop("is_chat_admin")
+
+        return result
+
+    async def check(self, obj: Union[Message, CallbackQuery, InlineQuery]) -> bool:
+        user_id = obj.from_user.id
+
+        if self._check_current:
+            if isinstance(obj, Message):
+                message = obj
+            elif isinstance(obj, CallbackQuery) and obj.message:
+                message = obj.message
+            else:
+                return False
+            if ChatType.is_private(message):  # there is no admin in private chats
+                return False
+            chat_ids = [message.chat.id]
+        else:
+            chat_ids = self._chat_ids
+
+        admins = [member.user.id for chat_id in chat_ids for member in await obj.bot.get_chat_administrators(chat_id)]
+
+        return user_id in admins
+
+
+class IsReplyFilter(BoundFilter):
+    """
+    Check if message is replied and send reply message to handler
+    """
+    key = 'is_reply'
+
+    def __init__(self, is_reply):
+        self.is_reply = is_reply
+
+    async def check(self, msg: Message):
+        if msg.reply_to_message and self.is_reply:
+            return {'reply': msg.reply_to_message}
+        elif not msg.reply_to_message and not self.is_reply:
+            return True

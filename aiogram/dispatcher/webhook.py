@@ -3,12 +3,13 @@ import asyncio.tasks
 import datetime
 import functools
 import ipaddress
+import itertools
 import typing
+import logging
 from typing import Dict, List, Optional, Union
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPGone
-
 
 from .. import types
 from ..bot import api
@@ -30,10 +31,12 @@ WEBHOOK = 'webhook'
 WEBHOOK_CONNECTION = 'WEBHOOK_CONNECTION'
 WEBHOOK_REQUEST = 'WEBHOOK_REQUEST'
 
-TELEGRAM_IP_LOWER = ipaddress.IPv4Address('149.154.167.197')
-TELEGRAM_IP_UPPER = ipaddress.IPv4Address('149.154.167.233')
+TELEGRAM_SUBNET_1 = ipaddress.IPv4Network('149.154.160.0/20')
+TELEGRAM_SUBNET_2 = ipaddress.IPv4Network('91.108.4.0/22')
 
 allowed_ips = set()
+
+log = logging.getLogger(__name__)
 
 
 def _check_ip(ip: str) -> bool:
@@ -47,18 +50,26 @@ def _check_ip(ip: str) -> bool:
     return address in allowed_ips
 
 
-def allow_ip(*ips: str):
+def allow_ip(*ips: typing.Union[str, ipaddress.IPv4Network, ipaddress.IPv4Address]):
     """
     Allow ip address.
 
     :param ips:
     :return:
     """
-    allowed_ips.update(ipaddress.IPv4Address(ip) for ip in ips)
+    for ip in ips:
+        if isinstance(ip, ipaddress.IPv4Address):
+            allowed_ips.add(ip)
+        elif isinstance(ip, str):
+            allowed_ips.add(ipaddress.IPv4Address(ip))
+        elif isinstance(ip, ipaddress.IPv4Network):
+            allowed_ips.update(ip.hosts())
+        else:
+            raise ValueError(f"Bad type of ipaddress: {type(ip)} ('{ip}')")
 
 
 # Allow access from Telegram servers
-allow_ip(*(ip for ip in range(int(TELEGRAM_IP_LOWER), int(TELEGRAM_IP_UPPER) + 1)))
+allow_ip(TELEGRAM_SUBNET_1, TELEGRAM_SUBNET_2)
 
 
 class WebhookRequestHandler(web.View):
@@ -69,7 +80,7 @@ class WebhookRequestHandler(web.View):
 
     .. code-block:: python3
 
-        app.router.add_route('*', '/your/webhook/path', WebhookRequestHadler, name='webhook_handler')
+        app.router.add_route('*', '/your/webhook/path', WebhookRequestHandler, name='webhook_handler')
 
     But first you need to configure application for getting Dispatcher instance from request handler!
     It must always be with key 'BOT_DISPATCHER'
@@ -165,7 +176,7 @@ class WebhookRequestHandler(web.View):
         timeout_handle = loop.call_later(RESPONSE_TIMEOUT, asyncio.tasks._release_waiter, waiter)
         cb = functools.partial(asyncio.tasks._release_waiter, waiter)
 
-        fut = asyncio.ensure_future(dispatcher.process_update(update), loop=loop)
+        fut = asyncio.ensure_future(dispatcher.updates_handler.notify(update), loop=loop)
         fut.add_done_callback(cb)
 
         try:
@@ -219,7 +230,7 @@ class WebhookRequestHandler(web.View):
         """
         if results is None:
             return None
-        for result in results:
+        for result in itertools.chain.from_iterable(results):
             if isinstance(result, BaseResponse):
                 return result
 
@@ -250,7 +261,9 @@ class WebhookRequestHandler(web.View):
         if self.request.app.get('_check_ip', False):
             ip_address, accept = self.check_ip()
             if not accept:
+                log.warning(f"Blocking request from an unauthorized IP: {ip_address}")
                 raise web.HTTPUnauthorized()
+
             # context.set_value('TELEGRAM_IP', ip_address)
 
 
@@ -510,7 +523,7 @@ class SendMessage(BaseResponse, ReplyToMixin, ParseModeMixin, DisableNotificatio
             'disable_web_page_preview': self.disable_web_page_preview,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
     def write(self, *text, sep=' '):
@@ -629,7 +642,7 @@ class SendPhoto(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'caption': self.caption,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -691,7 +704,7 @@ class SendAudio(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'title': self.title,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -804,7 +817,7 @@ class SendVideo(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'caption': self.caption,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -858,7 +871,7 @@ class SendVoice(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'duration': self.duration,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -911,7 +924,7 @@ class SendVideoNote(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'length': self.length,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1037,7 +1050,7 @@ class SendLocation(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'longitude': self.longitude,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1096,7 +1109,7 @@ class SendVenue(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'foursquare_id': self.foursquare_id,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1147,7 +1160,7 @@ class SendContact(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'last_name': self.last_name,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1207,7 +1220,7 @@ class KickChatMember(BaseResponse):
         return {
             'chat_id': self.chat_id,
             'user_id': self.user_id,
-            'until_date': prepare_arg(self.until_date)
+            'until_date': prepare_arg(self.until_date),
         }
 
 
@@ -1595,7 +1608,7 @@ class EditMessageText(BaseResponse, ParseModeMixin, DisableWebPagePreviewMixin):
             'text': self.text,
             'parse_mode': self.parse_mode,
             'disable_web_page_preview': self.disable_web_page_preview,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1636,7 +1649,7 @@ class EditMessageCaption(BaseResponse):
             'message_id': self.message_id,
             'inline_message_id': self.inline_message_id,
             'caption': self.caption,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1672,7 +1685,7 @@ class EditMessageReplyMarkup(BaseResponse):
             'chat_id': self.chat_id,
             'message_id': self.message_id,
             'inline_message_id': self.inline_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1743,7 +1756,7 @@ class SendSticker(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'sticker': self.sticker,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }
 
 
@@ -1835,7 +1848,7 @@ class AddStickerToSet(BaseResponse):
             'name': self.name,
             'png_sticker': self.png_sticker,
             'emojis': self.emojis,
-            'mask_position': prepare_arg(self.mask_position)
+            'mask_position': prepare_arg(self.mask_position),
         }
 
 
@@ -2164,5 +2177,5 @@ class SendGame(BaseResponse, ReplyToMixin, DisableNotificationMixin):
             'game_short_name': self.game_short_name,
             'disable_notification': self.disable_notification,
             'reply_to_message_id': self.reply_to_message_id,
-            'reply_markup': prepare_arg(self.reply_markup)
+            'reply_markup': prepare_arg(self.reply_markup),
         }

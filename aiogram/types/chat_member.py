@@ -1,4 +1,6 @@
 import datetime
+import warnings
+from typing import Optional
 
 from . import base
 from . import fields
@@ -24,18 +26,20 @@ class ChatMember(base.TelegramObject):
     can_restrict_members: base.Boolean = fields.Field()
     can_pin_messages: base.Boolean = fields.Field()
     can_promote_members: base.Boolean = fields.Field()
+    is_member: base.Boolean = fields.Field()
     can_send_messages: base.Boolean = fields.Field()
     can_send_media_messages: base.Boolean = fields.Field()
+    can_send_polls: base.Boolean = fields.Field()
     can_send_other_messages: base.Boolean = fields.Field()
     can_add_web_page_previews: base.Boolean = fields.Field()
 
-    def is_admin(self):
-        return ChatMemberStatus.is_admin(self.status)
+    def is_chat_admin(self) -> bool:
+        return ChatMemberStatus.is_chat_admin(self.status)
 
-    def is_member(self):
-        return ChatMemberStatus.is_member(self.status)
+    def is_chat_member(self) -> bool:
+        return ChatMemberStatus.is_chat_member(self.status)
 
-    def __int__(self):
+    def __int__(self) -> int:
         return self.user.id
 
 
@@ -43,19 +47,19 @@ class ChatMemberStatus(helper.Helper):
     """
     Chat member status
     """
-
     mode = helper.HelperMode.lowercase
 
     CREATOR = helper.Item()  # creator
     ADMINISTRATOR = helper.Item()  # administrator
     MEMBER = helper.Item()  # member
+    RESTRICTED = helper.Item()  # restricted
     LEFT = helper.Item()  # left
     KICKED = helper.Item()  # kicked
 
     @classmethod
-    def is_admin(cls, role):
+    def is_chat_admin(cls, role: str) -> bool:
         return role in [cls.ADMINISTRATOR, cls.CREATOR]
 
     @classmethod
-    def is_member(cls, role):
-        return role in [cls.MEMBER, cls.ADMINISTRATOR, cls.CREATOR]
+    def is_chat_member(cls, role: str) -> bool:
+        return role in [cls.MEMBER, cls.ADMINISTRATOR, cls.CREATOR, cls.RESTRICTED]

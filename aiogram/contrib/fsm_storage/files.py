@@ -15,12 +15,13 @@ class _FileStorage(MemoryStorage):
         path = self.path = pathlib.Path(path)
 
         try:
-            self._data = self.read(path)
+            self.data = self.read(path)
         except FileNotFoundError:
             pass
 
     async def close(self):
-        self.write(self.path)
+        if self.data:
+            self.write(self.path)
         await super(_FileStorage, self).close()
 
     def read(self, path: pathlib.Path):

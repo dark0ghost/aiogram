@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+import warnings
 
 from .base import BaseBot, api
 from .. import types
@@ -201,7 +202,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -267,7 +269,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -327,19 +330,21 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup,
             types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
         :rtype: :obj:`types.Message`
         """
         reply_markup = prepare_arg(reply_markup)
-        payload = generate_payload(**locals(), exclude=['audio'])
+        payload = generate_payload(**locals(), exclude=['audio', 'thumb'])
         if self.parse_mode:
             payload.setdefault('parse_mode', self.parse_mode)
 
         files = {}
         prepare_file(payload, files, 'audio', audio)
+        prepare_attachment(payload, files, 'thumb', thumb)
 
         result = await self.request(api.Methods.SEND_AUDIO, payload, files)
         return types.Message(**result)
@@ -377,7 +382,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup,
             types.ReplyKeyboardRemove, types.ForceReply], None]`
         :return: On success, the sent Message is returned
@@ -438,7 +444,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -557,7 +564,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -605,7 +613,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup, types.ReplyKeyboardMarkup,
             types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -679,7 +688,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -794,7 +804,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -835,7 +846,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned
@@ -845,6 +857,44 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         payload = generate_payload(**locals())
 
         result = await self.request(api.Methods.SEND_CONTACT, payload)
+        return types.Message(**result)
+
+    async def send_poll(self, chat_id: typing.Union[base.Integer, base.String],
+                        question: base.String,
+                        options: typing.List[base.String],
+                        disable_notification: typing.Optional[base.Boolean] = None,
+                        reply_to_message_id: typing.Optional[base.Integer] = None,
+                        reply_markup: typing.Union[types.InlineKeyboardMarkup,
+                                                   types.ReplyKeyboardMarkup,
+                                                   types.ReplyKeyboardRemove,
+                                                   types.ForceReply, None] = None) -> types.Message:
+        """
+        Use this method to send a native poll. A native poll can't be sent to a private chat.
+        On success, the sent Message is returned.
+
+        :param chat_id: Unique identifier for the target chat
+            or username of the target channel (in the format @channelusername).
+            A native poll can't be sent to a private chat.
+        :type chat_id: :obj:`typing.Union[base.Integer, base.String]`
+        :param question: Poll question, 1-255 characters
+        :type question: :obj:`base.String`
+        :param options: List of answer options, 2-10 strings 1-100 characters each
+        :param options: :obj:`typing.List[base.String]`
+        :param disable_notification: Sends the message silently. Users will receive a notification with no sound.
+        :type disable_notification: :obj:`typing.Optional[Boolean]`
+        :param reply_to_message_id: If the message is a reply, ID of the original message
+        :type reply_to_message_id: :obj:`typing.Optional[Integer]`
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
+        :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
+            types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
+        :return: On success, the sent Message is returned
+        :rtype: :obj:`types.Message`
+        """
+        options = prepare_arg(options)
+        payload = generate_payload(**locals())
+
+        result = await self.request(api.Methods.SEND_POLL, payload)
         return types.Message(**result)
 
     async def send_chat_action(self, chat_id: typing.Union[base.Integer, base.String],
@@ -966,6 +1016,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
 
     async def restrict_chat_member(self, chat_id: typing.Union[base.Integer, base.String],
                                    user_id: base.Integer,
+                                   permissions: typing.Optional[types.ChatPermissions] = None,
+                                   # permissions argument need to be required after removing other `can_*` arguments
                                    until_date: typing.Union[base.Integer, None] = None,
                                    can_send_messages: typing.Union[base.Boolean, None] = None,
                                    can_send_media_messages: typing.Union[base.Boolean, None] = None,
@@ -982,6 +1034,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type chat_id: :obj:`typing.Union[base.Integer, base.String]`
         :param user_id: Unique identifier of the target user
         :type user_id: :obj:`base.Integer`
+        :param permissions: New user permissions
+        :type permissions: :obj:`ChatPermissions`
         :param until_date: Date when restrictions will be lifted for the user, unix time
         :type until_date: :obj:`typing.Union[base.Integer, None]`
         :param can_send_messages: Pass True, if the user can send text messages, contacts, locations and venues
@@ -999,7 +1053,18 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :rtype: :obj:`base.Boolean`
         """
         until_date = prepare_arg(until_date)
+        permissions = prepare_arg(permissions)
         payload = generate_payload(**locals())
+
+        for permission in ['can_send_messages',
+                           'can_send_media_messages',
+                           'can_send_other_messages',
+                           'can_add_web_page_previews']:
+            if permission in payload:
+                warnings.warn(f"The method `restrict_chat_member` now takes the new user permissions "
+                              f"in a single argument of the type ChatPermissions instead of "
+                              f"passing regular argument {payload[permission]}",
+                              DeprecationWarning, stacklevel=2)
 
         result = await self.request(api.Methods.RESTRICT_CHAT_MEMBER, payload)
         return result
@@ -1049,6 +1114,25 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         payload = generate_payload(**locals())
 
         result = await self.request(api.Methods.PROMOTE_CHAT_MEMBER, payload)
+        return result
+
+    async def set_chat_permissions(self, chat_id: typing.Union[base.Integer, base.String],
+                                   permissions: types.ChatPermissions) -> base.Boolean:
+        """
+        Use this method to set default chat permissions for all members.
+        The bot must be an administrator in the group or a supergroup for this to work and must have the
+        can_restrict_members admin rights.
+
+        Returns True on success.
+
+        :param chat_id: Unique identifier for the target chat or username of the target supergroup
+        :param permissions: New default chat permissions
+        :return: True on success.
+        """
+        permissions = prepare_arg(permissions)
+        payload = generate_payload(**locals())
+
+        result = await self.request(api.Methods.SET_CHAT_PERMISSIONS, payload)
         return result
 
     async def export_chat_invite_link(self, chat_id: typing.Union[base.Integer, base.String]) -> base.String:
@@ -1524,17 +1608,37 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
             return result
         return types.Message(**result)
 
+    async def stop_poll(self, chat_id: typing.Union[base.String, base.Integer],
+                        message_id: base.Integer,
+                        reply_markup: typing.Union[types.InlineKeyboardMarkup, None] = None) -> types.Poll:
+        """
+        Use this method to stop a poll which was sent by the bot.
+        On success, the stopped Poll with the final results is returned.
+
+        :param chat_id: Unique identifier for the target chat or username of the target channel
+        :type chat_id: :obj:`typing.Union[base.String, base.Integer]`
+        :param message_id: Identifier of the original message with the poll
+        :type message_id: :obj:`base.Integer`
+        :param reply_markup: A JSON-serialized object for a new message inline keyboard.
+        :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup, None]`
+        :return: On success, the stopped Poll with the final results is returned.
+        :rtype: :obj:`types.Poll`
+        """
+        payload = generate_payload(**locals())
+
+        result = await self.request(api.Methods.STOP_POLL, payload)
+        return types.Poll(**result)
+
     async def delete_message(self, chat_id: typing.Union[base.Integer, base.String],
                              message_id: base.Integer) -> base.Boolean:
         """
-        Use this method to delete a message, including service messages, with the following limitations
+        Use this method to delete a message, including service messages, with the following limitations:
         - A message can only be deleted if it was sent less than 48 hours ago.
-        - Bots can delete outgoing messages in groups and supergroups.
+        - Bots can delete outgoing messages in private chats, groups, and supergroups.
+        - Bots can delete incoming messages in private chats.
         - Bots granted can_post_messages permissions can delete outgoing messages in channels.
         - If the bot is an administrator of a group, it can delete any message there.
         - If the bot has can_delete_messages permission in a supergroup or a channel, it can delete any message there.
-
-        The following methods and objects allow your bot to handle stickers and sticker sets.
 
         Source: https://core.telegram.org/bots/api#deletemessage
 
@@ -1574,7 +1678,8 @@ class Bot(BaseBot, DataMixin, ContextInstanceMixin):
         :type disable_notification: :obj:`typing.Union[base.Boolean, None]`
         :param reply_to_message_id: If the message is a reply, ID of the original message
         :type reply_to_message_id: :obj:`typing.Union[base.Integer, None]`
-        :param reply_markup: Additional interface options
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline keyboard,
+            custom reply keyboard, instructions to remove reply keyboard or to force a reply from the user
         :type reply_markup: :obj:`typing.Union[types.InlineKeyboardMarkup,
             types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove, types.ForceReply, None]`
         :return: On success, the sent Message is returned

@@ -2,6 +2,10 @@ Welcome to aiogram's documentation!
 ===================================
 
 
+    .. image:: https://img.shields.io/badge/telegram-aiogram-blue.svg?style=flat-square
+       :target: https://t.me/aiogram_live
+       :alt: [Telegram] aiogram live
+
     .. image:: https://img.shields.io/pypi/v/aiogram.svg?style=flat-square
        :target: https://pypi.python.org/pypi/aiogram
        :alt: PyPi Package Version
@@ -10,15 +14,19 @@ Welcome to aiogram's documentation!
        :target: https://pypi.python.org/pypi/aiogram
        :alt: PyPi status
 
-    .. image:: https://img.shields.io/pypi/pyversions/aiogram.svg?style=flat-square
-       :target: https://pypi.python.org/pypi/aiogram
-       :alt: Supported python versions
-
     .. image:: https://img.shields.io/pypi/dm/aiogram.svg?style=flat-square
        :target: https://pypi.python.org/pypi/aiogram
        :alt: PyPi downloads
 
-    .. image:: https://img.shields.io/readthedocs/pip/stable.svg?style=flat-square
+    .. image:: https://img.shields.io/pypi/pyversions/aiogram.svg?style=flat-square
+       :target: https://pypi.python.org/pypi/aiogram
+       :alt: Supported python versions
+
+    .. image:: https://img.shields.io/badge/Telegram%20Bot%20API-4.4-blue.svg?style=flat-square&logo=telegram
+       :target: https://core.telegram.org/bots/api
+       :alt: Telegram Bot API
+
+    .. image:: https://img.shields.io/readthedocs/aiogram?style=flat-square
        :target: http://aiogram.readthedocs.io/en/latest/?badge=latest
        :alt: Documentation Status
 

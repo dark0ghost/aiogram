@@ -6,7 +6,7 @@ from ..handler import Handler
 
 class FiltersFactory:
     """
-    Default filters factory
+    Filters factory
     """
 
     def __init__(self, dispatcher):
@@ -70,4 +70,4 @@ class FiltersFactory:
                 yield filter_
 
         if full_config:
-            raise NameError('Invalid filter name(s): \'' + '\', '.join(full_config.keys()) + '\'')
+            raise NameError("Invalid filter name(s): '" + "', ".join(full_config.keys()) + "'")
